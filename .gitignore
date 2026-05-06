@@ -1,0 +1,14 @@
+# ESP-IDF
+build/
+sdkconfig.old
+
+# VS Code
+.vscode/
+
+# Python env (czasem się pojawia)
+.env/
+.venv/
+
+# system
+*.log
+*.tmp
