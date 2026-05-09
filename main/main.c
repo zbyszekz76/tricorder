@@ -1,172 +1,229 @@
 #include <stdio.h>
-#include <math.h>
-#include "driver/i2c_master.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 
-// ===================== TAG =====================
-static const char *TAG = "IMU";
+#include "driver/spi_master.h"
 
-// ===================== I2C =====================
-#define I2C_SDA_PIN 8
-#define I2C_SCL_PIN 9
-#define I2C_PORT 0
-#define I2C_FREQ_HZ 400000
+#include "esp_lcd_panel_io.h"
+#include "esp_lcd_panel_ops.h"
 
-// ===================== FXOS8700 =====================
-#define FXOS8700_ADDR 0x1E
-
-#define FXOS8700_WHO_AM_I 0x0D
-#define FXOS8700_CTRL_REG1 0x2A
-#define FXOS8700_XYZ_DATA_CFG 0x0E
-#define FXOS8700_OUT_X_MSB 0x01
-
-#define FXOS8700_ID 0xC7
-
-// uchwyty
-i2c_master_bus_handle_t bus_handle;
-i2c_master_dev_handle_t imu_handle;
+#include "esp_lcd_ili9341.h"
 
 // =================================================
-// ===================== I2C INIT ===================
+// ===================== TAG =======================
 // =================================================
 
-void init_i2c(void)
-{
-    i2c_master_bus_config_t bus_config = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .i2c_port = I2C_PORT,
-        .scl_io_num = I2C_SCL_PIN,
-        .sda_io_num = I2C_SDA_PIN,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true
-    };
-
-    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
-
-    i2c_device_config_t dev_config = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = FXOS8700_ADDR,
-        .scl_speed_hz = I2C_FREQ_HZ,
-    };
-
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &imu_handle));
-
-    ESP_LOGI(TAG, "I2C initialized");
-}
+static const char *TAG = "TFT";
 
 // =================================================
-// ===================== WRITE ======================
+// ===================== TFT PINS ==================
 // =================================================
 
-void write_reg(uint8_t reg, uint8_t value)
-{
-    uint8_t data[2] = {reg, value};
+// #define PIN_NUM_MOSI 38
+// #define PIN_NUM_MISO 47
+// #define PIN_NUM_CLK  48
 
-    ESP_ERROR_CHECK(
-        i2c_master_transmit(
-            imu_handle,
-            data,
-            2,
-            100
-        )
-    );
-}
+// #define PIN_NUM_CS   21
+// #define PIN_NUM_DC   18
+// #define PIN_NUM_RST  17
 
-// =================================================
-// ===================== READ =======================
-// =================================================
+#define PIN_NUM_MOSI 11
+#define PIN_NUM_MISO 13
+#define PIN_NUM_CLK  12
 
-esp_err_t read_reg(uint8_t reg, uint8_t *data, size_t len)
-{
-    return i2c_master_transmit_receive(
-        imu_handle,
-        &reg,
-        1,
-        data,
-        len,
-        100
-    );
-}
+#define PIN_NUM_CS   10
+#define PIN_NUM_DC   14
+#define PIN_NUM_RST  15
 
 // =================================================
-// ===================== INIT ACC ===================
+// ===================== LCD =======================
 // =================================================
 
-void init_acc(void)
-{
-    uint8_t who = 0;
+#define LCD_HOST SPI2_HOST
 
-    read_reg(FXOS8700_WHO_AM_I, &who, 1);
-
-    if (who == FXOS8700_ID) {
-        ESP_LOGI(TAG, "FXOS8700 OK");
-    } else {
-        ESP_LOGE(TAG, "Wrong ID: 0x%02X", who);
-    }
-
-    // standby
-    write_reg(FXOS8700_CTRL_REG1, 0x00);
-
-    // zakres ±2g
-    write_reg(FXOS8700_XYZ_DATA_CFG, 0x00);
-
-    // active + ODR ~100 Hz
-    write_reg(FXOS8700_CTRL_REG1, 0x0D);
-
-    ESP_LOGI(TAG, "ACC initialized");
-}
+#define LCD_H_RES 240
+#define LCD_V_RES 320
 
 // =================================================
-// ===================== TASK IMU ===================
-// =================================================
-
-void imu_task(void *arg)
-{
-    uint8_t raw[6];
-
-    while (1)
-    {
-        if (read_reg(FXOS8700_OUT_X_MSB, raw, 6) == ESP_OK)
-        {
-            int16_t x = ((int16_t)(raw[0] << 8 | raw[1])) >> 2;
-            int16_t y = ((int16_t)(raw[2] << 8 | raw[3])) >> 2;
-            int16_t z = ((int16_t)(raw[4] << 8 | raw[5])) >> 2;
-
-            // konwersja do g (±2g)
-            float ax = x / 4096.0f;
-            float ay = y / 4096.0f;
-            float az = z / 4096.0f;
-
-            ESP_LOGI(TAG, "AX: %.2f  AY: %.2f  AZ: %.2f", ax, ay, az);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Read error");
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(10)); // ~100 Hz
-    }
-}
-
-// =================================================
-// ===================== MAIN =======================
+// ===================== MAIN ======================
 // =================================================
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "System start");
+    ESP_LOGI(TAG, "ILI9341 TEST START");
 
-    init_i2c();
-    init_acc();
+    // =================================================
+    // ===================== SPI BUS ===================
+    // =================================================
 
-    xTaskCreate(
-        imu_task,
-        "imu_task",
-        4096,
-        NULL,
-        5,
-        NULL
+    spi_bus_config_t buscfg = {
+        .sclk_io_num = PIN_NUM_CLK,
+        .mosi_io_num = PIN_NUM_MOSI,
+        .miso_io_num = PIN_NUM_MISO,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = LCD_H_RES * 80 * sizeof(uint16_t),
+    };
+
+    ESP_ERROR_CHECK(
+        spi_bus_initialize(
+            LCD_HOST,
+            &buscfg,
+            SPI_DMA_CH_AUTO
+        )
     );
+
+    ESP_LOGI(TAG, "SPI bus initialized");
+
+    // =================================================
+    // ===================== PANEL IO ==================
+    // =================================================
+
+    esp_lcd_panel_io_handle_t io_handle = NULL;
+
+    esp_lcd_panel_io_spi_config_t io_config = {
+        .dc_gpio_num = PIN_NUM_DC,
+        .cs_gpio_num = PIN_NUM_CS,
+
+        .pclk_hz = 40000000,
+
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
+
+        .spi_mode = 0,
+
+        .trans_queue_depth = 10,
+    };
+
+    ESP_ERROR_CHECK(
+        esp_lcd_new_panel_io_spi(
+            (esp_lcd_spi_bus_handle_t)LCD_HOST,
+            &io_config,
+            &io_handle
+        )
+    );
+
+    ESP_LOGI(TAG, "Panel IO initialized");
+
+    // =================================================
+    // ===================== PANEL =====================
+    // =================================================
+
+    esp_lcd_panel_handle_t panel_handle = NULL;
+
+    esp_lcd_panel_dev_config_t panel_config = {
+        .reset_gpio_num = PIN_NUM_RST,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+        .bits_per_pixel = 16,
+    };
+
+    ESP_ERROR_CHECK(
+        esp_lcd_new_panel_ili9341(
+            io_handle,
+            &panel_config,
+            &panel_handle
+        )
+    );
+
+    ESP_LOGI(TAG, "ILI9341 panel created");
+
+    // =================================================
+    // ===================== RESET =====================
+    // =================================================
+
+    ESP_ERROR_CHECK(
+        esp_lcd_panel_reset(panel_handle)
+    );
+
+    ESP_ERROR_CHECK(
+        esp_lcd_panel_init(panel_handle)
+    );
+
+    ESP_ERROR_CHECK(
+        esp_lcd_panel_disp_on_off(panel_handle, true)
+    );
+
+    ESP_LOGI(TAG, "Display initialized");
+
+    // =================================================
+    // ===================== BUFFER ====================
+    // =================================================
+
+    uint16_t *buffer = heap_caps_malloc(
+        LCD_H_RES * LCD_V_RES * sizeof(uint16_t),
+        MALLOC_CAP_DMA
+    );
+
+    if (buffer == NULL)
+    {
+        ESP_LOGE(TAG, "Buffer allocation failed");
+        return;
+    }
+
+    // =================================================
+    // ===================== LOOP ======================
+    // =================================================
+
+    while (1)
+    {
+        // RED
+        for (int i = 0; i < LCD_H_RES * LCD_V_RES; i++)
+        {
+            buffer[i] = 0xF800;
+        }
+
+        esp_lcd_panel_draw_bitmap(
+            panel_handle,
+            0,
+            0,
+            LCD_H_RES,
+            LCD_V_RES,
+            buffer
+        );
+
+        ESP_LOGI(TAG, "RED");
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+        // GREEN
+        for (int i = 0; i < LCD_H_RES * LCD_V_RES; i++)
+        {
+            buffer[i] = 0x07E0;
+        }
+
+        esp_lcd_panel_draw_bitmap(
+            panel_handle,
+            0,
+            0,
+            LCD_H_RES,
+            LCD_V_RES,
+            buffer
+        );
+
+        ESP_LOGI(TAG, "GREEN");
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+        // BLUE
+        for (int i = 0; i < LCD_H_RES * LCD_V_RES; i++)
+        {
+            buffer[i] = 0x001F;
+        }
+
+        esp_lcd_panel_draw_bitmap(
+            panel_handle,
+            0,
+            0,
+            LCD_H_RES,
+            LCD_V_RES,
+            buffer
+        );
+
+        ESP_LOGI(TAG, "BLUE");
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
