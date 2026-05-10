@@ -63,27 +63,48 @@ void ui_task(void *arg)
 
         sprite.fillSprite(TFT_BLACK);
 
-        // ================= HORIZON =================
+        // =================================================
+        // ================= HORIZON DATA ==================
+        // =================================================
 
         float pitch = g_imu_data.pitch;
         float roll  = g_imu_data.roll;
 
+        // =================================================
+        // ================= SCREEN CENTER =================
+        // =================================================
+
         int cx = 160;
         int cy = 120;
 
-        // pitch offset
-        int pitch_offset = pitch * 2;
+        // =================================================
+        // ================= PITCH OFFSET ==================
+        // =================================================
 
-        // horizon vector
+        // ile pixeli na 1 stopień
+        int pitch_scale = 2;
+
+        int pitch_offset = pitch * pitch_scale;
+
+        // =================================================
+        // ================= ROLL ==========================
+        // =================================================
+
         float rad = roll * DEG_TO_RAD;
 
-        int x1 = cx - 200 * cos(rad);
-        int y1 = cy - 200 * sin(rad) + pitch_offset;
+        // długa linia horizonu
+        int horizon_len = 250;
 
-        int x2 = cx + 200 * cos(rad);
-        int y2 = cy + 200 * sin(rad) + pitch_offset;
+        int x1 = cx - horizon_len * cos(rad);
+        int y1 = cy - horizon_len * sin(rad) + pitch_offset;
 
-        // sky
+        int x2 = cx + horizon_len * cos(rad);
+        int y2 = cy + horizon_len * sin(rad) + pitch_offset;
+
+        // =================================================
+        // ================= SKY ===========================
+        // =================================================
+
         sprite.fillRect(
             0,
             0,
@@ -92,7 +113,10 @@ void ui_task(void *arg)
             TFT_BLUE
         );
 
-        // ground
+        // =================================================
+        // ================= GROUND ========================
+        // =================================================
+
         sprite.fillRect(
             0,
             cy + pitch_offset,
@@ -101,7 +125,10 @@ void ui_task(void *arg)
             TFT_BROWN
         );
 
-        // horizon line
+        // =================================================
+        // ================= HORIZON LINE ==================
+        // =================================================
+
         sprite.drawLine(
             x1,
             y1,
@@ -110,77 +137,60 @@ void ui_task(void *arg)
             TFT_WHITE
         );
 
-        // center marker
-        sprite.drawCircle(
-            cx,
+        // =================================================
+        // ================= CENTER MARK ===================
+        // =================================================
+
+        sprite.drawLine(
+            cx - 20,
             cy,
-            5,
-            TFT_WHITE
+            cx + 20,
+            cy,
+            TFT_YELLOW
+        );
+
+        sprite.drawLine(
+            cx,
+            cy - 10,
+            cx,
+            cy + 10,
+            TFT_YELLOW
+        );
+
+        // =================================================
+        // ================= TEXT ==========================
+        // =================================================
+
+        ui_draw_title(
+            &sprite,
+            10,
+            10,
+            "TRICORDER AHRS"
         );
 
         ui_draw_float(
             &sprite,
-            UI_MARGIN_X,
-            30 + UI_LINE_H * 0,
+            10,
+            40,
             "PITCH",
-            g_imu_data.pitch
+            pitch
         );
 
         ui_draw_float(
             &sprite,
-            UI_MARGIN_X,
-            30 + UI_LINE_H * 1,
+            10,
+            70,
             "ROLL",
-            g_imu_data.roll
-        );       
+            roll
+        );
 
-        // ================= TITLE =================
-
-    ui_draw_title(
-        &sprite,
-        10,
-        10,
-        "TRICORDER CORE"
-    );
-
-    ui_draw_float(
-        &sprite,
-        10,
-        70,
-        "AX",
-        g_imu_data.ax
-    );
-
-    ui_draw_float(
-        &sprite,
-        10,
-        90,
-        "AY",
-        g_imu_data.ay
-    );
-
-    ui_draw_float(
-        &sprite,
-        10,
-        110,
-        "AZ",
-        g_imu_data.az
-    );
-
-    ui_draw_label(
-        &sprite,
-        10,
-        180,
-        "FPS"
-    );
-
-    ui_draw_float(
-        &sprite,
-        80,
-        180,
-        "",
-        (float)fps
-    );
+        ui_draw_float(
+            &sprite,
+            10,
+            100,
+            "FPS",
+            (float)fps
+        );
 
         // ================= FPS =================
 
