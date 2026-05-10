@@ -1,3 +1,15 @@
-idf_component_register(SRCS "main.c"
-                    INCLUDE_DIRS "."
-                    REQUIRES esp_lcd esp_driver_spi esp_lcd_ili9341)
+idf_component_register(
+    SRCS
+        "main.c"
+        "drivers/fxos8700.c"
+        "common/shared_data.c"
+        "tasks/imu_task.c"
+    INCLUDE_DIRS
+        "."
+        ".."
+    REQUIRES
+        esp_driver_i2c
+        esp_lcd
+        esp_driver_spi
+        esp_lcd_ili9341
+)
