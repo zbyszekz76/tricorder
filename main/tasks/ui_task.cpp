@@ -5,6 +5,8 @@
 
 #include "esp_log.h"
 
+#include <math.h>
+
 #include "../drivers/lgfx_display.h"
 
 #include "../common/shared_data.h"
@@ -16,6 +18,8 @@
 // =================================================
 
 static const char *TAG = "UI_TASK";
+
+static constexpr float DEG_TO_RAD = 0.01745329252f;
 
 // =================================================
 // ===================== SPRITE ====================
@@ -45,15 +49,90 @@ void ui_task(void *arg)
 
     sprite.setTextSize(2);
 
+    uint32_t frame_count = 0;
+
     uint32_t fps = 0;
 
-    uint32_t last_fps_time = 0;
+    TickType_t last_fps_tick = xTaskGetTickCount();
+
+    TickType_t lastWakeTime = xTaskGetTickCount();
 
     while (1)
     {
         // ================= CLEAR =================
 
         sprite.fillSprite(TFT_BLACK);
+
+        // ================= HORIZON =================
+
+        float pitch = g_imu_data.pitch;
+        float roll  = g_imu_data.roll;
+
+        int cx = 160;
+        int cy = 120;
+
+        // pitch offset
+        int pitch_offset = pitch * 2;
+
+        // horizon vector
+        float rad = roll * DEG_TO_RAD;
+
+        int x1 = cx - 200 * cos(rad);
+        int y1 = cy - 200 * sin(rad) + pitch_offset;
+
+        int x2 = cx + 200 * cos(rad);
+        int y2 = cy + 200 * sin(rad) + pitch_offset;
+
+        // sky
+        sprite.fillRect(
+            0,
+            0,
+            320,
+            cy + pitch_offset,
+            TFT_BLUE
+        );
+
+        // ground
+        sprite.fillRect(
+            0,
+            cy + pitch_offset,
+            320,
+            240,
+            TFT_BROWN
+        );
+
+        // horizon line
+        sprite.drawLine(
+            x1,
+            y1,
+            x2,
+            y2,
+            TFT_WHITE
+        );
+
+        // center marker
+        sprite.drawCircle(
+            cx,
+            cy,
+            5,
+            TFT_WHITE
+        );
+
+        ui_draw_float(
+            &sprite,
+            UI_MARGIN_X,
+            30 + UI_LINE_H * 0,
+            "PITCH",
+            g_imu_data.pitch
+        );
+
+        ui_draw_float(
+            &sprite,
+            UI_MARGIN_X,
+            30 + UI_LINE_H * 1,
+            "ROLL",
+            g_imu_data.roll
+        );       
 
         // ================= TITLE =================
 
@@ -67,7 +146,7 @@ void ui_task(void *arg)
     ui_draw_float(
         &sprite,
         10,
-        50,
+        70,
         "AX",
         g_imu_data.ax
     );
@@ -75,7 +154,7 @@ void ui_task(void *arg)
     ui_draw_float(
         &sprite,
         10,
-        80,
+        90,
         "AY",
         g_imu_data.ay
     );
@@ -88,25 +167,44 @@ void ui_task(void *arg)
         g_imu_data.az
     );
 
+    ui_draw_label(
+        &sprite,
+        10,
+        180,
+        "FPS"
+    );
+
+    ui_draw_float(
+        &sprite,
+        80,
+        180,
+        "",
+        (float)fps
+    );
+
         // ================= FPS =================
 
-        fps++;
-
-        if (xTaskGetTickCount() - last_fps_time > 1000 / portTICK_PERIOD_MS)
-        {
-            last_fps_time = xTaskGetTickCount();
-
-            sprite.setCursor(10, 180);
-
-            sprite.printf("FPS: %lu", fps);
-
-            fps = 0;
-        }
+        frame_count++;
 
         // ================= PUSH =================
 
         sprite.pushSprite(0, 0);
 
-        vTaskDelay(pdMS_TO_TICKS(16));
+        TickType_t now = xTaskGetTickCount();
+
+    if ((now - last_fps_tick) >= pdMS_TO_TICKS(1000))
+    {
+        fps = frame_count;
+
+        frame_count = 0;
+
+        last_fps_tick = now;
+    }
+
+    vTaskDelayUntil(
+        &lastWakeTime,
+    pdMS_TO_TICKS(16)
+    );
+
     }
 }

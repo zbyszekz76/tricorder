@@ -5,6 +5,8 @@
 
 #include "esp_log.h"
 
+#include <math.h>
+
 #include "../drivers/fxos8700.h"
 #include "../common/shared_data.h"
 
@@ -36,6 +38,15 @@ void imu_task(void *arg)
             g_imu_data.ax = ax;
             g_imu_data.ay = ay;
             g_imu_data.az = az;
+
+            g_imu_data.roll =
+                atan2f(ay, az) * 57.2958f;
+
+            g_imu_data.pitch =
+                atan2f(
+                    -ax,
+                    sqrtf(ay * ay + az * az)
+                ) * 57.2958f;            
 
             // debug
             static uint32_t counter = 0;

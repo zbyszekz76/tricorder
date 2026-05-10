@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+#define UI_MARGIN_X 80
+#define UI_LINE_H   20
+
 void ui_task(void *arg);
 
 #ifdef __cplusplus
