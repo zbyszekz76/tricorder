@@ -1,2 +1,5 @@
 dependencies:
   espressif/esp_lcd_ili9341: "*"
+  LovyanGFX:
+    git: https://github.com/lovyan03/LovyanGFX.git
+    version: 1.2.19

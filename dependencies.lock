@@ -1,4 +1,12 @@
 dependencies:
+  LovyanGFX:
+    component_hash: 15db170773c639524bdc9b15838f4b3c507f1a497a88365055d9ea71b126ac8b
+    dependencies: []
+    source:
+      git: https://github.com/lovyan03/LovyanGFX.git
+      path: .
+      type: git
+    version: 6f6e9a052fc719ecb2b42640b0207215050d2560
   espressif/cmake_utilities:
     component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
     dependencies:
@@ -28,7 +36,8 @@ dependencies:
       type: idf
     version: 5.5.4
 direct_dependencies:
+- LovyanGFX
 - espressif/esp_lcd_ili9341
-manifest_hash: 7cef8118e58e22fb1950b6ce41ee070acb7a6c41dd9fcde991c95620d6ed20ba
+manifest_hash: b04a2a84de9a961828b039ab7d6d7de5799168abcf6c37270028079c9111e00b
 target: esp32s3
 version: 2.0.0

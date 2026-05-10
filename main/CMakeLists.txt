@@ -3,9 +3,10 @@ idf_component_register(
         "main.c"
         "drivers/fxos8700.c"
         "drivers/ili9341_display.c"
+        "drivers/lgfx_display.cpp"
         "common/shared_data.c"
         "tasks/imu_task.c"
-        "tasks/ui_task.c"
+        "tasks/ui_task.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
@@ -13,4 +14,5 @@ idf_component_register(
         esp_lcd
         esp_driver_spi
         esp_lcd_ili9341
+        LovyanGFX
 )
