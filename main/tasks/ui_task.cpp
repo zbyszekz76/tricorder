@@ -9,6 +9,8 @@
 
 #include "../common/shared_data.h"
 
+#include "../ui/ui_helpers.h"
+
 // =================================================
 // ===================== TAG =======================
 // =================================================
@@ -55,28 +57,36 @@ void ui_task(void *arg)
 
         // ================= TITLE =================
 
-        sprite.setCursor(10, 10);
+    ui_draw_title(
+        &sprite,
+        10,
+        10,
+        "TRICORDER CORE"
+    );
 
-        sprite.println("TRICORDER CORE");
+    ui_draw_float(
+        &sprite,
+        10,
+        50,
+        "AX",
+        g_imu_data.ax
+    );
 
-        // ================= IMU =================
+    ui_draw_float(
+        &sprite,
+        10,
+        80,
+        "AY",
+        g_imu_data.ay
+    );
 
-        sprite.setCursor(10, 50);
-
-        sprite.printf(
-            "AX: %.2f\n",
-            g_imu_data.ax
-        );
-        sprite.setCursor(10, 70);
-        sprite.printf(
-            "AY: %.2f\n",
-            g_imu_data.ay
-        );
-        sprite.setCursor(10, 90);
-        sprite.printf(
-            "AZ: %.2f\n",
-            g_imu_data.az
-        );
+    ui_draw_float(
+        &sprite,
+        10,
+        110,
+        "AZ",
+        g_imu_data.az
+    );
 
         // ================= FPS =================
 

@@ -7,6 +7,7 @@ idf_component_register(
         "common/shared_data.c"
         "tasks/imu_task.c"
         "tasks/ui_task.cpp"
+        "ui/ui_helpers.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
