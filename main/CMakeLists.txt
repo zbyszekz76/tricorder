@@ -2,11 +2,12 @@ idf_component_register(
     SRCS
         "main.c"
         "drivers/fxos8700.c"
+        "drivers/ili9341_display.c"
         "common/shared_data.c"
         "tasks/imu_task.c"
+        "tasks/ui_task.c"
     INCLUDE_DIRS
         "."
-        ".."
     REQUIRES
         esp_driver_i2c
         esp_lcd

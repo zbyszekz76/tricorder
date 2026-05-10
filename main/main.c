@@ -4,8 +4,10 @@
 #include "esp_log.h"
 
 #include "drivers/fxos8700.h"
-
 #include "tasks/imu_task.h"
+
+#include "drivers/ili9341_display.h"
+#include "tasks/ui_task.h"
 
 // =================================================
 // ===================== TAG =======================
@@ -21,7 +23,12 @@ void app_main(void)
 {
     ESP_LOGI(TAG, "System start");
 
-    // init IMU
+    // ================= DISPLAY =================
+
+    display_init();
+
+    // ================= IMU =================
+
     if (fxos8700_init() != ESP_OK)
     {
         ESP_LOGE(TAG, "IMU init failed");
@@ -37,6 +44,17 @@ void app_main(void)
             NULL
         );
     }
+
+    // ================= UI TASK =================
+
+    xTaskCreate(
+        ui_task,
+        "ui_task",
+        8192,
+        NULL,
+        4,
+        NULL
+    );
 
     ESP_LOGI(TAG, "System ready");
 }
