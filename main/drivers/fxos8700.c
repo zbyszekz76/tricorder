@@ -77,9 +77,9 @@ static esp_err_t read_reg(
 
 esp_err_t fxos8700_init(void)
 {
-    // =================================================
-    // ===================== I2C BUS ===================
-    // =================================================
+    esp_err_t ret;
+
+    // ================= I2C BUS =================
 
     i2c_master_bus_config_t bus_config = {
         .clk_source = I2C_CLK_SRC_DEFAULT,
@@ -90,16 +90,18 @@ esp_err_t fxos8700_init(void)
         .flags.enable_internal_pullup = true
     };
 
-    ESP_ERROR_CHECK(
-        i2c_new_master_bus(
-            &bus_config,
-            &bus_handle
-        )
+    ret = i2c_new_master_bus(
+        &bus_config,
+        &bus_handle
     );
 
-    // =================================================
-    // ===================== DEVICE ====================
-    // =================================================
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "I2C bus init failed");
+        return ret;
+    }
+
+    // ================= DEVICE =================
 
     i2c_device_config_t dev_config = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
@@ -107,27 +109,33 @@ esp_err_t fxos8700_init(void)
         .scl_speed_hz = I2C_FREQ_HZ,
     };
 
-    ESP_ERROR_CHECK(
-        i2c_master_bus_add_device(
-            bus_handle,
-            &dev_config,
-            &imu_handle
-        )
+    ret = i2c_master_bus_add_device(
+        bus_handle,
+        &dev_config,
+        &imu_handle
     );
 
-    // =================================================
-    // ===================== WHO AM I ==================
-    // =================================================
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Add device failed");
+        return ret;
+    }
+
+    // ================= WHO AM I =================
 
     uint8_t who = 0;
 
-    ESP_ERROR_CHECK(
-        read_reg(
-            FXOS8700_WHO_AM_I,
-            &who,
-            1
-        )
+    ret = read_reg(
+        FXOS8700_WHO_AM_I,
+        &who,
+        1
     );
+
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "WHO_AM_I read failed");
+        return ret;
+    }
 
     if (who != FXOS8700_ID)
     {
@@ -138,28 +146,40 @@ esp_err_t fxos8700_init(void)
     ESP_LOGI(TAG, "FXOS8700 detected");
 
     // standby
-    ESP_ERROR_CHECK(
-        write_reg(
-            FXOS8700_CTRL_REG1,
-            0x00
-        )
+    ret = write_reg(
+        FXOS8700_CTRL_REG1,
+        0x00
     );
+
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Standby write failed");
+        return ret;
+    }
 
     // ±2g
-    ESP_ERROR_CHECK(
-        write_reg(
-            FXOS8700_XYZ_DATA_CFG,
-            0x00
-        )
+    ret = write_reg(
+        FXOS8700_XYZ_DATA_CFG,
+        0x00
     );
 
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Range config failed");
+        return ret;
+    }
+
     // active + 100 Hz
-    ESP_ERROR_CHECK(
-        write_reg(
-            FXOS8700_CTRL_REG1,
-            0x0D
-        )
+    ret = write_reg(
+        FXOS8700_CTRL_REG1,
+        0x0D
     );
+
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Active mode failed");
+        return ret;
+    }
 
     ESP_LOGI(TAG, "Accelerometer initialized");
 
