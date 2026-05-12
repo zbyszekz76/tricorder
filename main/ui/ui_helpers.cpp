@@ -64,3 +64,34 @@ void ui_draw_float(
         value
     );
 }
+
+void rotate_point(
+    int x,
+    int y,
+    int cx,
+    int cy,
+    float angle_rad,
+    int *rx,
+    int *ry
+)
+{
+    // przesunięcie do środka
+
+    float tx = x - cx;
+    float ty = y - cy;
+
+    // rotacja
+
+    float xr =
+        tx * cos(angle_rad)
+        - ty * sin(angle_rad);
+
+    float yr =
+        tx * sin(angle_rad)
+        + ty * cos(angle_rad);
+
+    // powrót
+
+    *rx = xr + cx;
+    *ry = yr + cy;
+}

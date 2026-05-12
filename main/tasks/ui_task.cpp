@@ -92,6 +92,8 @@ void ui_task(void *arg)
         int cx = 160;
         int cy = 120;
 
+        int bank_radius = 90;
+
         // =================================================
         // ================= PITCH OFFSET ==================
         // =================================================
@@ -107,7 +109,7 @@ void ui_task(void *arg)
 
         float rad = roll * DEG_TO_RAD;
 
-        int horizon_len = 140;
+        int horizon_len = 260;
 
         int x1 =
             cx - horizon_len * cos(rad);
@@ -159,6 +161,108 @@ void ui_task(void *arg)
             TFT_WHITE
         );
 
+        sprite.drawCircle(
+            cx,
+            cy,
+            bank_radius,
+            TFT_DARKGREY
+        );
+
+        for (int angle = -60;
+            angle <= 60;
+            angle += 15)
+        {
+            float a =
+                (angle - 90)
+                * DEG_TO_RAD;
+
+            int x1 =
+                cx + cos(a) * (bank_radius - 10);
+
+            int y1 =
+                cy + sin(a) * (bank_radius - 10);
+
+            int x2 =
+                cx + cos(a) * bank_radius;
+
+            int y2 =
+                cy + sin(a) * bank_radius;
+
+            sprite.drawLine(
+                x1,
+                y1,
+                x2,
+                y2,
+                TFT_WHITE
+            );
+        }
+
+        float pointer_angle =
+            (roll - 90)
+            * DEG_TO_RAD;
+
+        int px =
+            cx + cos(pointer_angle)
+            * (bank_radius - 20);
+
+        int py =
+            cy + sin(pointer_angle)
+            * (bank_radius - 20);
+
+        sprite.fillTriangle(
+            px,
+            py,
+
+            px - 6,
+            py - 10,
+
+            px + 6,
+            py - 10,
+
+            TFT_YELLOW
+        );
+
+        // =================================================
+        // ================= AIRCRAFT SYMBOL ===============
+        // =================================================
+
+        // skrzydła
+
+        sprite.drawLine(
+            cx - 25,
+            cy,
+            cx - 5,
+            cy,
+            TFT_YELLOW
+        );
+
+        sprite.drawLine(
+            cx + 5,
+            cy,
+            cx + 25,
+            cy,
+            TFT_YELLOW
+        );
+
+        // środek
+
+        sprite.fillCircle(
+            cx,
+            cy,
+            3,
+            TFT_YELLOW
+        );
+
+        // pionowy marker
+
+        sprite.drawLine(
+            cx,
+            cy - 10,
+            cx,
+            cy - 4,
+            TFT_YELLOW
+        );
+
         for (int angle = -30; angle <= 30; angle += 10)
         {
             if (angle == 0)
@@ -170,11 +274,44 @@ void ui_task(void *arg)
             int ly =
                 cy + pitch_offset - offset;
 
+            int lx1 = cx - 40;
+            int ly1 = ly;
+
+            int lx2 = cx + 40;
+            int ly2 = ly;
+
+            // rotated points
+
+            int rx1, ry1;
+            int rx2, ry2;
+
+            rotate_point(
+                lx1,
+                ly1,
+                cx,
+                cy,
+                rad,
+                &rx1,
+                &ry1
+            );
+
+            rotate_point(
+                lx2,
+                ly2,
+                cx,
+                cy,
+                rad,
+                &rx2,
+                &ry2
+            );
+
+            // draw rotated ladder
+
             sprite.drawLine(
-                cx - 40,
-                ly,
-                cx + 40,
-                ly,
+                rx1,
+                ry1,
+                rx2,
+                ry2,
                 TFT_WHITE
             );
 

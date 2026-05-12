@@ -36,3 +36,13 @@ void ui_draw_float(
     const char* label,
     float value
 );
+
+void rotate_point(
+    int x,
+    int y,
+    int cx,
+    int cy,
+    float angle_rad,
+    int *rx,
+    int *ry
+);
