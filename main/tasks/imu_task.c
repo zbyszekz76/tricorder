@@ -31,8 +31,27 @@ void imu_task(void *arg)
 // współczynnik filtru
     const float alpha = 0.15f;
 
+    float gyro_roll = 0.0f;
+    float gyro_pitch = 0.0f;
+
+    float fused_roll = 0.0f;
+    float fused_pitch = 0.0f;
+
+    TickType_t last_tick =
+        xTaskGetTickCount();
+
     while (1)
     {
+        TickType_t now =
+            xTaskGetTickCount();
+
+        float dt =
+            (now - last_tick)
+            * portTICK_PERIOD_MS
+            / 1000.0f;
+
+        last_tick = now;
+
         float ax, ay, az;
         float gx, gy, gz;
 
@@ -72,15 +91,32 @@ void imu_task(void *arg)
         // ================= SHARED DATA ===================
         // =================================================
 
-        g_imu_data.roll  = filtered_roll;
-        g_imu_data.pitch = filtered_pitch;           
+        fused_roll =
+            0.98f *
+            (fused_roll + gx * dt)
+            +
+            0.02f *
+            filtered_roll;
+
+        fused_pitch =
+            0.98f *
+            (fused_pitch + gy * dt)
+            +
+            0.02f *
+            filtered_pitch;
+
+        // shared data
+
+        g_imu_data.roll  = fused_roll;
+
+        g_imu_data.pitch = fused_pitch;           
 
             // debug
-            static uint32_t counter = 0;
+            static uint32_t acc_counter = 0;
 
-            counter++;
+            acc_counter++;
 
-            if (counter >= 10)
+            if (acc_counter >= 10)
             {
                 ESP_LOGI(
                     TAG,
@@ -90,7 +126,7 @@ void imu_task(void *arg)
                     az
                 );
 
-                counter = 0;
+                acc_counter = 0;
             }
         }
         else
@@ -108,11 +144,17 @@ void imu_task(void *arg)
             g_imu_data.gy = gy;
             g_imu_data.gz = gz;
 
-            static uint32_t counter = 0;
+            gyro_roll += gx * dt;
+            gyro_pitch += gy * dt;
 
-            counter++;
+            g_imu_data.gyro_roll = gyro_roll;
+            g_imu_data.gyro_pitch = gyro_pitch;
 
-            if (counter >= 20)
+            static uint32_t gyro_counter = 0;
+
+            gyro_counter++;
+
+            if (gyro_counter >= 20)
             {
                 ESP_LOGI(
                     TAG,
@@ -122,7 +164,7 @@ void imu_task(void *arg)
                     gz
                 );
 
-                counter = 0;
+                gyro_counter = 0;
             }
         }
         else

@@ -47,7 +47,7 @@ void ui_task(void *arg)
     // ================= SMALLER SPRITE ================
     // =================================================
 
-    sprite.createSprite(160, 120);
+    sprite.createSprite(320, 240);
 
     sprite.setTextSize(2);
 
@@ -89,8 +89,8 @@ void ui_task(void *arg)
         // ================= SCREEN CENTER =================
         // =================================================
 
-        int cx = 120;
-        int cy = 80;
+        int cx = 160;
+        int cy = 120;
 
         // =================================================
         // ================= PITCH OFFSET ==================
@@ -107,7 +107,7 @@ void ui_task(void *arg)
 
         float rad = roll * DEG_TO_RAD;
 
-        int horizon_len = 200;
+        int horizon_len = 140;
 
         int x1 =
             cx - horizon_len * cos(rad);
@@ -130,7 +130,7 @@ void ui_task(void *arg)
         sprite.fillRect(
             0,
             0,
-            240,
+            320,
             cy + pitch_offset,
             TFT_BLUE
         );
@@ -142,8 +142,8 @@ void ui_task(void *arg)
         sprite.fillRect(
             0,
             cy + pitch_offset,
+            320,
             240,
-            160,
             TFT_BROWN
         );
 
@@ -158,6 +158,30 @@ void ui_task(void *arg)
             y2,
             TFT_WHITE
         );
+
+        for (int angle = -30; angle <= 30; angle += 10)
+        {
+            if (angle == 0)
+                continue;
+
+            int offset =
+                angle * pitch_scale;
+
+            int ly =
+                cy + pitch_offset - offset;
+
+            sprite.drawLine(
+                cx - 40,
+                ly,
+                cx + 40,
+                ly,
+                TFT_WHITE
+            );
+
+            sprite.setCursor(cx + 50, ly - 5);
+
+            sprite.printf("%d", angle);
+        }
 
         // =================================================
         // ================= CENTER MARK ===================
@@ -233,6 +257,22 @@ void ui_task(void *arg)
             (float)fps
         );
 
+        ui_draw_float(
+            &sprite,
+            10,
+            90,
+            "G-R",
+            g_imu_data.gyro_roll
+        );
+
+        ui_draw_float(
+            &sprite,
+            10,
+            115,
+            "G-P",
+            g_imu_data.gyro_pitch
+        );
+
         // =================================================
         // ================= PUSH ==========================
         // =================================================
@@ -248,7 +288,7 @@ void ui_task(void *arg)
 
         vTaskDelayUntil(
             &lastWakeTime,
-            pdMS_TO_TICKS(33)
+            pdMS_TO_TICKS(50)
         );
     }
 }
