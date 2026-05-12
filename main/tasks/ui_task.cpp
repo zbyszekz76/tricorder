@@ -5,13 +5,13 @@
 
 #include "esp_log.h"
 
-#include <math.h>
-
 #include "../drivers/lgfx_display.h"
 
 #include "../common/shared_data.h"
 
 #include "../ui/ui_helpers.h"
+
+#include <math.h>
 
 // =================================================
 // ===================== TAG =======================
@@ -19,7 +19,7 @@
 
 static const char *TAG = "UI_TASK";
 
-static constexpr float DEG_TO_RAD = 0.01745329252f;
+static constexpr float DEG_TO_RAD = 0.017453292519943295769f;
 
 // =================================================
 // ===================== SPRITE ====================
@@ -35,31 +35,45 @@ void ui_task(void *arg)
 {
     ESP_LOGI(TAG, "UI task started");
 
-    // ================= TFT INIT =================
+    // =================================================
+    // ================= TFT INIT ======================
+    // =================================================
 
     tft.init();
 
     tft.setRotation(1);
 
-    // ================= SPRITE =================
+    // =================================================
+    // ================= SMALLER SPRITE ================
+    // =================================================
 
-    sprite.createSprite(320, 240);
-
-    sprite.setTextColor(TFT_GREEN);
+    sprite.createSprite(160, 120);
 
     sprite.setTextSize(2);
+
+    // =================================================
+    // ================= FPS ===========================
+    // =================================================
 
     uint32_t frame_count = 0;
 
     uint32_t fps = 0;
 
-    TickType_t last_fps_tick = xTaskGetTickCount();
+    TickType_t last_fps_tick =
+        xTaskGetTickCount();
 
-    TickType_t lastWakeTime = xTaskGetTickCount();
+    TickType_t lastWakeTime =
+        xTaskGetTickCount();
+
+    // =================================================
+    // ================= LOOP ==========================
+    // =================================================
 
     while (1)
     {
-        // ================= CLEAR =================
+        // =================================================
+        // ================= CLEAR =========================
+        // =================================================
 
         sprite.fillSprite(TFT_BLACK);
 
@@ -68,23 +82,24 @@ void ui_task(void *arg)
         // =================================================
 
         float pitch = g_imu_data.pitch;
-        float roll  = g_imu_data.roll;
+
+        float roll = g_imu_data.roll;
 
         // =================================================
         // ================= SCREEN CENTER =================
         // =================================================
 
-        int cx = 160;
-        int cy = 120;
+        int cx = 120;
+        int cy = 80;
 
         // =================================================
         // ================= PITCH OFFSET ==================
         // =================================================
 
-        // ile pixeli na 1 stopień
         int pitch_scale = 2;
 
-        int pitch_offset = pitch * pitch_scale;
+        int pitch_offset =
+            pitch * pitch_scale;
 
         // =================================================
         // ================= ROLL ==========================
@@ -92,14 +107,21 @@ void ui_task(void *arg)
 
         float rad = roll * DEG_TO_RAD;
 
-        // długa linia horizonu
-        int horizon_len = 250;
+        int horizon_len = 200;
 
-        int x1 = cx - horizon_len * cos(rad);
-        int y1 = cy - horizon_len * sin(rad) + pitch_offset;
+        int x1 =
+            cx - horizon_len * cos(rad);
 
-        int x2 = cx + horizon_len * cos(rad);
-        int y2 = cy + horizon_len * sin(rad) + pitch_offset;
+        int y1 =
+            cy - horizon_len * sin(rad)
+            + pitch_offset;
+
+        int x2 =
+            cx + horizon_len * cos(rad);
+
+        int y2 =
+            cy + horizon_len * sin(rad)
+            + pitch_offset;
 
         // =================================================
         // ================= SKY ===========================
@@ -108,7 +130,7 @@ void ui_task(void *arg)
         sprite.fillRect(
             0,
             0,
-            320,
+            240,
             cy + pitch_offset,
             TFT_BLUE
         );
@@ -120,13 +142,13 @@ void ui_task(void *arg)
         sprite.fillRect(
             0,
             cy + pitch_offset,
-            320,
             240,
+            160,
             TFT_BROWN
         );
 
         // =================================================
-        // ================= HORIZON LINE ==================
+        // ================= HORIZON =======================
         // =================================================
 
         sprite.drawLine(
@@ -142,18 +164,18 @@ void ui_task(void *arg)
         // =================================================
 
         sprite.drawLine(
-            cx - 20,
+            cx - 15,
             cy,
-            cx + 20,
+            cx + 15,
             cy,
             TFT_YELLOW
         );
 
         sprite.drawLine(
             cx,
-            cy - 10,
+            cy - 8,
             cx,
-            cy + 10,
+            cy + 8,
             TFT_YELLOW
         );
 
@@ -165,56 +187,68 @@ void ui_task(void *arg)
             &sprite,
             10,
             10,
-            "TRICORDER AHRS"
+            "AHRS"
         );
 
         ui_draw_float(
             &sprite,
             10,
             40,
-            "PITCH",
+            "P",
             pitch
         );
 
         ui_draw_float(
             &sprite,
             10,
-            70,
-            "ROLL",
+            65,
+            "R",
             roll
         );
+
+        // =================================================
+        // ================= FPS ===========================
+        // =================================================
+
+        frame_count++;
+
+        TickType_t now =
+            xTaskGetTickCount();
+
+        if ((now - last_fps_tick)
+            >= pdMS_TO_TICKS(1000))
+        {
+            fps = frame_count;
+
+            frame_count = 0;
+
+            last_fps_tick = now;
+        }
 
         ui_draw_float(
             &sprite,
             10,
-            100,
+            120,
             "FPS",
             (float)fps
         );
 
-        // ================= FPS =================
-
-        frame_count++;
-
-        // ================= PUSH =================
+        // =================================================
+        // ================= PUSH ==========================
+        // =================================================
 
         sprite.pushSprite(0, 0);
 
-        TickType_t now = xTaskGetTickCount();
+        // oddaj CPU schedulerowi
+        taskYIELD();
 
-    if ((now - last_fps_tick) >= pdMS_TO_TICKS(1000))
-    {
-        fps = frame_count;
+        // =================================================
+        // ================= 30 FPS ========================
+        // =================================================
 
-        frame_count = 0;
-
-        last_fps_tick = now;
-    }
-
-    vTaskDelayUntil(
-        &lastWakeTime,
-    pdMS_TO_TICKS(16)
-    );
-
+        vTaskDelayUntil(
+            &lastWakeTime,
+            pdMS_TO_TICKS(33)
+        );
     }
 }

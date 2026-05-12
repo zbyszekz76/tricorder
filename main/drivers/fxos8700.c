@@ -32,7 +32,7 @@ static const char *TAG = "FXOS8700";
 // ===================== HANDLES ===================
 // =================================================
 
-static i2c_master_bus_handle_t bus_handle;
+i2c_master_bus_handle_t bus_handle;
 static i2c_master_dev_handle_t imu_handle;
 
 // =================================================

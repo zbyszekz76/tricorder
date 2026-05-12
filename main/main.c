@@ -4,6 +4,7 @@
 #include "esp_log.h"
 
 #include "drivers/fxos8700.h"
+#include "drivers/fxas21002.h"
 #include "tasks/imu_task.h"
 
 
@@ -34,17 +35,26 @@ void app_main(void)
     {
         ESP_LOGE(TAG, "IMU init failed");
     }
+
+    if (fxas21002_init() != ESP_OK)
+    {
+        ESP_LOGE(TAG, "GYRO init failed");
+    }
     else
     {
-        xTaskCreate(
-            imu_task,
-            "imu_task",
-            8192,
-            NULL,
-            5,
-            NULL
-        );
+        ESP_LOGI(TAG, "GYRO online");
     }
+
+    // ================= IMU TASK =================
+
+    xTaskCreate(
+        imu_task,
+        "imu_task",
+        8192,
+        NULL,
+        5,
+        NULL
+    );
 
     // ================= UI TASK =================
 

@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "main.c"
         "drivers/fxos8700.c"
+        "drivers/fxas21002.c"
         "drivers/ili9341_display.c"
         "drivers/lgfx_display.cpp"
         "common/shared_data.c"

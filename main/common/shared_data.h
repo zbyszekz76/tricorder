@@ -8,6 +8,9 @@ typedef struct
     float az;
     float pitch;
     float roll;
+    float gx;
+    float gy;
+    float gz;
 
 } imu_data_t;
 
