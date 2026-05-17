@@ -8,7 +8,11 @@ idf_component_register(
         "common/shared_data.c"
         "tasks/imu_task.c"
         "tasks/ui_task.cpp"
+        "tasks/input_task.cpp"
         "ui/ui_helpers.cpp"
+        "ui/ui_renderer.cpp"
+        "ui/ui_pages.cpp"
+        "network/wifi_manager.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
@@ -16,5 +20,6 @@ idf_component_register(
         esp_lcd
         esp_driver_spi
         esp_lcd_ili9341
+        esp_wifi
         LovyanGFX
 )

@@ -1,3 +1,7 @@
+// =================================================
+// ================= ui_task.cpp ===================
+// =================================================
+
 #include "ui_task.h"
 
 #include "freertos/FreeRTOS.h"
@@ -9,9 +13,11 @@
 
 #include "../common/shared_data.h"
 
-#include "../ui/ui_helpers.h"
+#include "../ui/ui_renderer.h"
 
-#include <math.h>
+#include "../ui/ui_pages.h"
+
+#include "../network/wifi_manager.h"
 
 // =================================================
 // ===================== TAG =======================
@@ -19,7 +25,7 @@
 
 static const char *TAG = "UI_TASK";
 
-static constexpr float DEG_TO_RAD = 0.017453292519943295769f;
+static TickType_t last_time_update = 0;
 
 // =================================================
 // ===================== SPRITE ====================
@@ -44,7 +50,7 @@ void ui_task(void *arg)
     tft.setRotation(3);
 
     // =================================================
-    // ================= SMALLER SPRITE ================
+    // ================= SPRITE ========================
     // =================================================
 
     sprite.createSprite(320, 240);
@@ -69,8 +75,28 @@ void ui_task(void *arg)
     // ================= LOOP ==========================
     // =================================================
 
+    TickType_t last_page_switch = xTaskGetTickCount();
+    
     while (1)
     {
+        TickType_t now = xTaskGetTickCount();
+
+        if ((now - last_time_update)
+            >= pdMS_TO_TICKS(1000))
+        {
+            wifi_update_time();
+
+            last_time_update = now;
+        }
+
+        
+        if ((now - last_page_switch) >= pdMS_TO_TICKS(5000))
+        {
+            next_page();
+
+            last_page_switch = now;
+        }
+
         // =================================================
         // ================= CLEAR =========================
         // =================================================
@@ -78,24 +104,24 @@ void ui_task(void *arg)
         sprite.fillSprite(TFT_BLACK);
 
         // =================================================
-        // ================= HORIZON DATA ==================
+        // ================= DATA ==========================
         // =================================================
 
-        float pitch = g_imu_data.pitch;
+        float pitch =
+            g_imu_data.pitch;
 
-        float roll = g_imu_data.roll;
+        float roll =
+            g_imu_data.roll;
 
         // =================================================
-        // ================= SCREEN CENTER =================
+        // ================= CENTER ========================
         // =================================================
 
         int cx = 160;
         int cy = 120;
 
-        int bank_radius = 90;
-
         // =================================================
-        // ================= PITCH OFFSET ==================
+        // ================= PITCH =========================
         // =================================================
 
         int pitch_scale = 2;
@@ -104,10 +130,14 @@ void ui_task(void *arg)
             pitch * pitch_scale;
 
         // =================================================
-        // ================= ROLL ==========================
+        // ================= RENDER ========================
         // =================================================
 
-        float rad = roll * DEG_TO_RAD;
+        static constexpr float DEG_TO_RAD =
+            0.017453292519943295769f;
+
+        float rad =
+            roll * DEG_TO_RAD;
 
         int horizon_len = 260;
 
@@ -125,290 +155,172 @@ void ui_task(void *arg)
             cy + horizon_len * sin(rad)
             + pitch_offset;
 
-        // =================================================
-        // ================= SKY ===========================
-        // =================================================
+            frame_count++;
 
-        sprite.fillRect(
-            0,
-            0,
-            320,
-            cy + pitch_offset,
-            TFT_BLUE
-        );
+if ((now - last_fps_tick)
+    >= pdMS_TO_TICKS(1000))
+{
+    fps = frame_count;
 
-        // =================================================
-        // ================= GROUND ========================
-        // =================================================
+    frame_count = 0;
 
-        sprite.fillRect(
-            0,
-            cy + pitch_offset,
-            320,
-            240,
-            TFT_BROWN
-        );
+    last_fps_tick = now;
+}
+        
+switch(get_current_page())
+{
+    // =============================================
+    // ================ AHRS =======================
+    // =============================================
 
-        // =================================================
-        // ================= HORIZON =======================
-        // =================================================
+    case PAGE_AHRS:
 
-        sprite.drawLine(
+        draw_sky_ground(
+            &sprite,
             x1,
             y1,
             x2,
-            y2,
-            TFT_WHITE
+            y2
         );
 
-        sprite.drawCircle(
-            cx,
-            cy,
-            bank_radius,
-            TFT_DARKGREY
-        );
-
-        for (int angle = -60;
-            angle <= 60;
-            angle += 15)
-        {
-            float a =
-                (angle - 90)
-                * DEG_TO_RAD;
-
-            int x1 =
-                cx + cos(a) * (bank_radius - 10);
-
-            int y1 =
-                cy + sin(a) * (bank_radius - 10);
-
-            int x2 =
-                cx + cos(a) * bank_radius;
-
-            int y2 =
-                cy + sin(a) * bank_radius;
-
-            sprite.drawLine(
-                x1,
-                y1,
-                x2,
-                y2,
-                TFT_WHITE
-            );
-        }
-
-        float pointer_angle =
-            (roll - 90)
-            * DEG_TO_RAD;
-
-        int px =
-            cx + cos(pointer_angle)
-            * (bank_radius - 20);
-
-        int py =
-            cy + sin(pointer_angle)
-            * (bank_radius - 20);
-
-        sprite.fillTriangle(
-            px,
-            py,
-
-            px - 6,
-            py - 10,
-
-            px + 6,
-            py - 10,
-
-            TFT_YELLOW
-        );
-
-        // =================================================
-        // ================= AIRCRAFT SYMBOL ===============
-        // =================================================
-
-        // skrzydła
-
-        sprite.drawLine(
-            cx - 25,
-            cy,
-            cx - 5,
-            cy,
-            TFT_YELLOW
-        );
-
-        sprite.drawLine(
-            cx + 5,
-            cy,
-            cx + 25,
-            cy,
-            TFT_YELLOW
-        );
-
-        // środek
-
-        sprite.fillCircle(
-            cx,
-            cy,
-            3,
-            TFT_YELLOW
-        );
-
-        // pionowy marker
-
-        sprite.drawLine(
-            cx,
-            cy - 10,
-            cx,
-            cy - 4,
-            TFT_YELLOW
-        );
-
-        for (int angle = -30; angle <= 30; angle += 10)
-        {
-            if (angle == 0)
-                continue;
-
-            int offset =
-                angle * pitch_scale;
-
-            int ly =
-                cy + pitch_offset - offset;
-
-            int lx1 = cx - 40;
-            int ly1 = ly;
-
-            int lx2 = cx + 40;
-            int ly2 = ly;
-
-            // rotated points
-
-            int rx1, ry1;
-            int rx2, ry2;
-
-            rotate_point(
-                lx1,
-                ly1,
-                cx,
-                cy,
-                rad,
-                &rx1,
-                &ry1
-            );
-
-            rotate_point(
-                lx2,
-                ly2,
-                cx,
-                cy,
-                rad,
-                &rx2,
-                &ry2
-            );
-
-            // draw rotated ladder
-
-            sprite.drawLine(
-                rx1,
-                ry1,
-                rx2,
-                ry2,
-                TFT_WHITE
-            );
-
-            sprite.setCursor(cx + 50, ly - 5);
-
-            sprite.printf("%d", angle);
-        }
-
-        // =================================================
-        // ================= CENTER MARK ===================
-        // =================================================
-
-        sprite.drawLine(
-            cx - 15,
-            cy,
-            cx + 15,
-            cy,
-            TFT_YELLOW
-        );
-
-        sprite.drawLine(
-            cx,
-            cy - 8,
-            cx,
-            cy + 8,
-            TFT_YELLOW
-        );
-
-        // =================================================
-        // ================= TEXT ==========================
-        // =================================================
-
-        ui_draw_title(
+        draw_horizon(
             &sprite,
-            10,
-            10,
-            "AHRS"
+            cx,
+            cy,
+            roll,
+            pitch_offset
         );
 
-        ui_draw_float(
+        draw_bank_scale(
             &sprite,
-            10,
-            40,
-            "P",
-            pitch
-        );
-
-        ui_draw_float(
-            &sprite,
-            10,
-            65,
-            "R",
+            cx,
+            cy,
             roll
         );
 
-        // =================================================
-        // ================= FPS ===========================
-        // =================================================
-
-        frame_count++;
-
-        TickType_t now =
-            xTaskGetTickCount();
-
-        if ((now - last_fps_tick)
-            >= pdMS_TO_TICKS(1000))
-        {
-            fps = frame_count;
-
-            frame_count = 0;
-
-            last_fps_tick = now;
-        }
-
-        ui_draw_float(
+        draw_pitch_ladder(
             &sprite,
-            10,
-            120,
-            "FPS",
-            (float)fps
+            cx,
+            cy,
+            roll,
+            pitch_offset
         );
 
-        ui_draw_float(
+        draw_aircraft_symbol(
             &sprite,
-            10,
-            90,
-            "G-R",
-            g_imu_data.gyro_roll
+            cx,
+            cy
         );
 
-        ui_draw_float(
+        draw_overlay(
             &sprite,
-            10,
-            115,
-            "G-P",
+            pitch,
+            roll,
+            fps,
+            g_imu_data.gyro_roll,
             g_imu_data.gyro_pitch
         );
+
+        break;
+
+    // =============================================
+    // ================ IMU DEBUG ==================
+    // =============================================
+
+    case PAGE_IMU_DEBUG:
+
+        sprite.setCursor(20, 20);
+
+        sprite.printf(
+            "AX: %.2f",
+            g_imu_data.ax
+        );
+
+        sprite.setCursor(20, 50);
+
+        sprite.printf(
+            "AY: %.2f",
+            g_imu_data.ay
+        );
+
+        sprite.setCursor(20, 80);
+
+        sprite.printf(
+            "AZ: %.2f",
+            g_imu_data.az
+        );
+
+        sprite.setCursor(20, 120);
+
+        sprite.printf(
+            "GX: %.2f",
+            g_imu_data.gx
+        );
+
+        sprite.setCursor(20, 150);
+
+        sprite.printf(
+            "GY: %.2f",
+            g_imu_data.gy
+        );
+
+        sprite.setCursor(20, 180);
+
+        sprite.printf(
+            "GZ: %.2f",
+            g_imu_data.gz
+        );
+
+        break;
+
+    // =============================================
+    // ================ SYSTEM =====================
+    // =============================================
+
+    case PAGE_SYSTEM:
+
+        sprite.setCursor(20, 20);
+
+        sprite.printf(
+            "TIME: %s",
+            g_imu_data.current_time
+        );
+
+        sprite.setCursor(20, 50);
+
+        sprite.printf(
+            "DATE: %s",
+            g_imu_data.current_date
+        );
+
+        sprite.setCursor(20, 80);
+
+        sprite.printf(
+            "IP: %s",
+            g_imu_data.ip_address
+        );
+
+        sprite.setCursor(20, 110);
+
+        sprite.printf(
+            "RSSI: %d dBm",
+            g_imu_data.wifi_rssi
+        );
+
+        sprite.setCursor(20, 140);
+
+        sprite.printf(
+            "WIFI: %s",
+            g_imu_data.wifi_connected
+                ? "CONNECTED"
+                : "DISCONNECTED"
+        );
+
+        break;
+
+        default:
+            break;
+}
 
         // =================================================
         // ================= PUSH ==========================
@@ -416,16 +328,19 @@ void ui_task(void *arg)
 
         sprite.pushSprite(0, 0);
 
-        // oddaj CPU schedulerowi
+        // =================================================
+        // ================= YIELD =========================
+        // =================================================
+
         taskYIELD();
 
         // =================================================
-        // ================= 30 FPS ========================
+        // ================= FPS LIMIT =====================
         // =================================================
 
         vTaskDelayUntil(
             &lastWakeTime,
-            pdMS_TO_TICKS(100)
+            pdMS_TO_TICKS(150)
         );
     }
 }

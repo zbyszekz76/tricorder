@@ -7,6 +7,10 @@
 #include "drivers/fxas21002.h"
 #include "tasks/imu_task.h"
 
+#include "network/wifi_manager.h"
+
+#include "tasks/input_task.h"
+
 
 // #include "drivers/ili9341_display.h"
 #include "tasks/ui_task.h"
@@ -17,12 +21,16 @@
 
 static const char *TAG = "MAIN";
 
+// wifi_manager_init();
+
 // =================================================
 // ===================== MAIN ======================
 // =================================================
 
 void app_main(void)
 {
+    wifi_manager_init();
+
     ESP_LOGI(TAG, "System start");
 
     // ================= DISPLAY =================
@@ -58,13 +66,24 @@ void app_main(void)
 
     // ================= UI TASK =================
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
         ui_task,
         "ui_task",
         8192,
         NULL,
-        4,
-        NULL
+        1,
+        NULL,
+        1
+    );
+
+    xTaskCreatePinnedToCore(
+        input_task,
+        "input_task",
+        4096,
+        NULL,
+        1,
+        NULL,
+        0
     );
 
     ESP_LOGI(TAG, "System ready");
