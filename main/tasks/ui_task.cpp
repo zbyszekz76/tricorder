@@ -41,7 +41,7 @@ void ui_task(void *arg)
 
     tft.init();
 
-    tft.setRotation(1);
+    tft.setRotation(3);
 
     // =================================================
     // ================= SMALLER SPRITE ================
@@ -425,7 +425,7 @@ void ui_task(void *arg)
 
         vTaskDelayUntil(
             &lastWakeTime,
-            pdMS_TO_TICKS(50)
+            pdMS_TO_TICKS(100)
         );
     }
 }
