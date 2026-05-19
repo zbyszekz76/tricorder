@@ -17,7 +17,13 @@
 
 #include "../ui/ui_pages.h"
 
+#include "../ui/page_menu.h"
+
+#include "../ui/ui_mode.h"
+
 #include "../network/wifi_manager.h"
+
+#include "../game/space_game.h"
 
 // =================================================
 // ===================== TAG =======================
@@ -71,12 +77,14 @@ void ui_task(void *arg)
     TickType_t lastWakeTime =
         xTaskGetTickCount();
 
+    TickType_t last_page_change =
+    xTaskGetTickCount();
+
     // =================================================
     // ================= LOOP ==========================
     // =================================================
 
-    TickType_t last_page_switch = xTaskGetTickCount();
-    
+     
     while (1)
     {
         TickType_t now = xTaskGetTickCount();
@@ -89,19 +97,50 @@ void ui_task(void *arg)
             last_time_update = now;
         }
 
-        
-        if ((now - last_page_switch) >= pdMS_TO_TICKS(5000))
-        {
-            next_page();
-
-            last_page_switch = now;
-        }
-
         // =================================================
         // ================= CLEAR =========================
         // =================================================
 
         sprite.fillSprite(TFT_BLACK);
+
+        // =================================================
+// ================= UI MODE =======================
+// =================================================
+
+        sprite.setTextColor(TFT_CYAN);
+
+        sprite.setTextSize(1);
+
+        sprite.setCursor(270, 10);
+
+// =================================================
+// ================= AUTO ROTATE ===================
+// =================================================
+
+        if(
+            ui_is_auto_mode()
+            &&
+            get_current_page() != PAGE_MENU
+        )
+        {
+            if((now - last_page_change)
+                >= pdMS_TO_TICKS(5000))
+            {
+                next_page();
+
+                // zabezpieczenie:
+                // nigdy nie wracaj automatycznie do MENU
+
+                if(get_current_page() == PAGE_MENU)
+                {
+                    next_page();
+
+                    
+                }
+                last_page_change = now;
+                
+            }
+        }
 
         // =================================================
         // ================= DATA ==========================
@@ -173,6 +212,12 @@ switch(get_current_page())
     // ================ AHRS =======================
     // =============================================
 
+    case PAGE_MENU:
+
+    draw_menu_page(&sprite);
+
+    break;
+    
     case PAGE_AHRS:
 
         draw_sky_ground(
@@ -222,6 +267,53 @@ switch(get_current_page())
         );
 
         break;
+
+        case PAGE_CLOCK:
+
+            // =========================================
+            // ================= TIME ==================
+            // =========================================
+
+            sprite.setTextColor(TFT_CYAN);
+
+            sprite.setTextSize(5);
+
+            sprite.setCursor(45, 70);
+
+            sprite.printf(
+                "%s",
+                g_imu_data.current_time
+            );
+
+            // =========================================
+            // ================= DATE ==================
+            // =========================================
+
+            sprite.setTextColor(TFT_WHITE);
+
+            sprite.setTextSize(2);
+
+            sprite.setCursor(85, 145);
+
+            sprite.printf(
+                "%s",
+                g_imu_data.current_date
+            );
+
+            // =========================================
+            // ================= WIFI ==================
+            // =========================================
+
+            sprite.setTextSize(1);
+
+            sprite.setCursor(20, 210);
+
+            sprite.printf(
+                "IP: %s",
+                g_imu_data.ip_address
+            );
+
+            break;
 
     // =============================================
     // ================ IMU DEBUG ==================
@@ -273,6 +365,16 @@ switch(get_current_page())
 
         break;
 
+
+    // =============================================
+    // ================GAME =====================
+    // =============================================
+        case PAGE_GAME:
+
+            drawSpaceGame(&sprite);
+
+            break;
+
     // =============================================
     // ================ SYSTEM =====================
     // =============================================
@@ -321,6 +423,8 @@ switch(get_current_page())
         default:
             break;
 }
+
+
 
         // =================================================
         // ================= PUSH ==========================

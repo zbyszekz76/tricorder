@@ -12,7 +12,11 @@ idf_component_register(
         "ui/ui_helpers.cpp"
         "ui/ui_renderer.cpp"
         "ui/ui_pages.cpp"
+        "ui/ui_menu.cpp"
+        "ui/page_menu.cpp"
+        "ui/ui_mode.cpp"
         "network/wifi_manager.cpp"
+        "game/space_game.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES

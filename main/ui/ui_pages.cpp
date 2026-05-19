@@ -5,39 +5,46 @@
 // =================================================
 
 static UiPage current_page =
-    PAGE_AHRS;
+    PAGE_MENU;
 
 // =================================================
 // ===================== NEXT ======================
 // =================================================
 
-void next_page(void)
+void next_page()
 {
-    current_page =
-        (UiPage)((current_page + 1) % 3);
+    if(current_page == PAGE_IMU_DEBUG)
+    {
+        current_page = PAGE_AHRS;
+    }
+    else
+    {
+        current_page =
+            (UiPage)(current_page + 1);
+    }
 }
 
-void prev_page(void)
+void prev_page()
 {
-    int page =
-        (int)current_page;
-
-    page--;
-
-    if (page < 0)
+    if(current_page == PAGE_AHRS)
     {
-        page =
-            PAGE_COUNT - 1;
+        current_page = PAGE_IMU_DEBUG;
     }
-
-    current_page =
-        (UiPage)page;
-
+    else
+    {
+        current_page =
+            (UiPage)(current_page - 1);
+    }
 }
 
 // =================================================
 // ===================== GET =======================
 // =================================================
+
+void set_current_page(UiPage page)
+{
+    current_page = page;
+}
 
 UiPage get_current_page(void)
 {

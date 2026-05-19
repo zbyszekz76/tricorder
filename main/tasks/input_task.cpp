@@ -1,3 +1,7 @@
+// =================================================
+// ================= input_task.cpp ================
+// =================================================
+
 #include "input_task.h"
 
 #include "freertos/FreeRTOS.h"
@@ -5,26 +9,29 @@
 
 #include "driver/gpio.h"
 
+#include "../ui/ui_pages.h"
+#include "../ui/ui_menu.h"
+#include "../ui/ui_mode.h"
+#include "../game/space_game.h"
+
 #include "esp_log.h"
 
-#include "../ui/ui_pages.h"
+// =================================================
+// ===================== PINS ======================
+// =================================================
+
+// DOSTOSUJ DO SWOJEGO HARDWARE
+
+#define ENCODER_A_PIN     GPIO_NUM_6
+#define ENCODER_B_PIN     GPIO_NUM_7
+#define ENCODER_BTN_PIN   GPIO_NUM_18
 
 // =================================================
 // ===================== TAG =======================
 // =================================================
 
-static const char* TAG =
-    "INPUT";
-
-// =================================================
-// ===================== GPIO ======================
-// =================================================
-
-static constexpr gpio_num_t ENC_A =
-    GPIO_NUM_6;
-
-static constexpr gpio_num_t ENC_B =
-    GPIO_NUM_7;
+static const char *TAG =
+    "INPUT_TASK";
 
 // =================================================
 // ===================== TASK ======================
@@ -38,27 +45,36 @@ void input_task(void *arg)
     // ================= GPIO CONFIG ===================
     // =================================================
 
-    gpio_config_t io_conf = {};
+    gpio_set_direction(
+        ENCODER_A_PIN,
+        GPIO_MODE_INPUT
+    );
 
-    io_conf.mode =
-        GPIO_MODE_INPUT;
+    gpio_set_direction(
+        ENCODER_B_PIN,
+        GPIO_MODE_INPUT
+    );
 
-    io_conf.pull_up_en =
-        GPIO_PULLUP_ENABLE;
+    gpio_set_direction(
+        ENCODER_BTN_PIN,
+        GPIO_MODE_INPUT
+    );
 
-    io_conf.pin_bit_mask =
-        (1ULL << ENC_A)
-        |
-        (1ULL << ENC_B);
-
-    gpio_config(&io_conf);
+    gpio_pullup_en(ENCODER_A_PIN);
+    gpio_pullup_en(ENCODER_B_PIN);
+    gpio_pullup_en(ENCODER_BTN_PIN);
 
     // =================================================
-    // ================= STATE =========================
+    // ================= STATES ========================
     // =================================================
 
     int last_a =
-        gpio_get_level(ENC_A);
+        gpio_get_level(ENCODER_A_PIN);
+
+    int last_button =
+        gpio_get_level(ENCODER_BTN_PIN);
+
+        TickType_t button_press_time = 0;
 
     // =================================================
     // ================= LOOP ==========================
@@ -66,47 +82,186 @@ void input_task(void *arg)
 
     while (1)
     {
+        // =================================================
+        // ================= ENCODER =======================
+        // =================================================
+
         int a =
-            gpio_get_level(ENC_A);
+            gpio_get_level(ENCODER_A_PIN);
 
-        // =================================================
-        // ================= EDGE DETECT ===================
-        // =================================================
+        int b =
+            gpio_get_level(ENCODER_B_PIN);
 
-        if (last_a == 1 && a == 0)
+        // rising edge on A
+
+        if ((a == 1) && (last_a == 0))
         {
-            int b =
-                gpio_get_level(ENC_B);
+            // =============================================
+            // ================= MENU MODE =================
+            // =============================================
 
-            // =================================================
-            // ================= DIRECTION =====================
-            // =================================================
-
-            if (a == b)
+            if(get_current_page() == PAGE_MENU)
             {
-                next_page();
-
-
+                if(b == 0)
+                {
+                    next_tile();
+                }
+                else
+                {
+                    prev_tile();
+                }
             }
+
+            // =============================================
+            // ================= PAGE MODE =================
+            // =============================================
+
             else
             {
-                prev_page();
+                // MANUAL MODE ONLY
 
-
-                
+                if(!ui_is_auto_mode())
+                {
+                    if(b == 0)
+                    {
+                        next_page();
+                    }
+                    else
+                    {
+                        prev_page();
+                    }
+                }
             }
-
-            // debounce
-
-            vTaskDelay(
-                pdMS_TO_TICKS(2)
-            );
         }
 
         last_a = a;
 
-        vTaskDelay(
-            pdMS_TO_TICKS(20)
+        // =================================================
+        // ================= BUTTON ========================
+        // =================================================
+
+        int button =
+            gpio_get_level(ENCODER_BTN_PIN);
+
+
+
+// =============================================
+// ================= BUTTON ====================
+// =============================================
+
+// =============================================
+// ============== BUTTON DOWN ==================
+// =============================================
+
+if((button == 0)
+&& (last_button == 1))
+{
+    button_press_time =
+        xTaskGetTickCount();
+}
+
+// =============================================
+// =============== BUTTON UP ===================
+// =============================================
+
+if((button == 1)
+&& (last_button == 0))
+{
+    TickType_t press_time =
+        xTaskGetTickCount()
+        - button_press_time;
+
+    // =========================================
+    // ============== SHORT PRESS ==============
+    // =========================================
+
+    if(press_time < pdMS_TO_TICKS(800))
+    {
+        // =====================================
+        // =============== MENU ================
+        // =====================================
+
+if(get_current_page() == PAGE_MENU)
+{
+    switch(get_selected_tile())
+    {
+        case 0:
+
+            set_current_page(
+                PAGE_AHRS
+            );
+
+            break;
+
+        case 1:
+
+            set_current_page(
+                PAGE_CLOCK
+            );
+
+            break;
+
+        case 2:
+
+            set_current_page(
+                PAGE_SYSTEM
+            );
+
+            break;
+
+        case 3:
+
+            set_current_page(
+                PAGE_IMU_DEBUG
+            );
+
+            break;
+
+        case 4:
+
+            set_current_page(
+                PAGE_GAME
+            );
+
+            break;
+
+        default:
+            break;
+    }
+}
+
+        // =====================================
+        // ============== NORMAL ===============
+        // =====================================
+
+        else if(get_current_page() == PAGE_GAME)
+        {
+            fireBullet();
+        }
+        else
+        {
+            ui_toggle_mode();
+        }
+    }
+
+    // =========================================
+    // =============== LONG PRESS ==============
+    // =========================================
+
+    else
+    {
+        set_current_page(
+            PAGE_MENU
         );
+    }
+}
+
+    last_button = button;
+
+        // =================================================
+        // ================= DELAY =========================
+        // =================================================
+
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }

@@ -26,6 +26,12 @@ static const char* WIFI_SSID =
 static const char* WIFI_PASS =
     "de2tujh4vgvfttjs";
 
+// static const char* WIFI_SSID =
+//     "sala12w";
+
+// static const char* WIFI_PASS =
+//     "zse7591@#";
+
 // =================================================
 // ===================== TAG =======================
 // =================================================

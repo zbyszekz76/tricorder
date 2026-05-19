@@ -1,24 +1,21 @@
 #pragma once
 
-// =================================================
-// ===================== PAGES =====================
-// =================================================
-
 enum UiPage
 {
-    PAGE_AHRS = 0,
-    PAGE_IMU_DEBUG,
+    PAGE_MENU = 0,
+
+    PAGE_AHRS,
+    PAGE_CLOCK,
     PAGE_SYSTEM,
+    PAGE_IMU_DEBUG,
+    PAGE_GAME,
 
     PAGE_COUNT
 };
 
-// =================================================
-// ===================== API =======================
-// =================================================
+UiPage get_current_page();
 
-void next_page(void);
+void set_current_page(UiPage page);
 
-void prev_page(void);
-
-UiPage get_current_page(void);
+void next_page();
+void prev_page();
