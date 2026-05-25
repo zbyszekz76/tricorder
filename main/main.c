@@ -7,7 +7,11 @@
 #include "drivers/fxas21002.h"
 #include "tasks/imu_task.h"
 
+#include "audio/audio.h"
+
 #include "network/wifi_manager.h"
+
+
 
 #include "tasks/input_task.h"
 
@@ -27,10 +31,14 @@ static const char *TAG = "MAIN";
 // ===================== MAIN ======================
 // =================================================
 
+
+
 void app_main(void)
 {
+    audio_init();
+    
     wifi_manager_init();
-
+    
     ESP_LOGI(TAG, "System start");
 
     // ================= DISPLAY =================

@@ -9,18 +9,19 @@ void draw_menu_page(
     LGFX_Sprite* sprite
 )
 {
-    const char* labels[5] =
+    const char* labels[6] =
     {
         "AHRS",
         "CLOCK",
         "SYSTEM",
         "DEBUG",
-        "GAME"
+        "GAME",
+        "NULL"
     };
 
     int selected = get_selected_tile();
 
-    int tile_w = 130;
+    int tile_w = 80;
     int tile_h = 80;
 
     int start_x = 25;
@@ -29,10 +30,10 @@ void draw_menu_page(
     int spacing_x = 15;
     int spacing_y = 15;
 
-    for(int i = 0; i < 5; i++)
+    for(int i = 0; i < 6; i++)
     {
-        int col = i % 2;
-        int row = i / 2;
+        int col = i % 3;
+        int row = i / 3;
 
         int x =
             start_x +

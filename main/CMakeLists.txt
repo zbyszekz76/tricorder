@@ -17,6 +17,8 @@ idf_component_register(
         "ui/ui_mode.cpp"
         "network/wifi_manager.cpp"
         "game/space_game.cpp"
+        "audio/audio.cpp"
+        "audio/rttl_task.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
